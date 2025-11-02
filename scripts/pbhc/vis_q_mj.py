@@ -59,14 +59,20 @@ def key_call_back(keycode):
         time_step += dt
     elif keycode == 263:  # Left arrow
         time_step -= dt
-    elif chr(keycode) == "O":
-        print("next motion")
-        motion_id = (motion_id + 1) % len(motion_data_keys)
-        time_step = 0
-    elif chr(keycode) == "P":
-        print("prev motion")
-        motion_id = (motion_id - 1) % len(motion_data_keys)
-        time_step = 0
+    elif chr(keycode) == "]":
+        if len(motion_data_keys) > 0:
+            print("Next Motion \n")
+            motion_id = (motion_id + 1) % len(motion_data_keys)
+            time_step = 0
+        else:
+            print("No motions available")
+    elif chr(keycode) == "[":
+        if len(motion_data_keys) > 0:
+            print("Prev Motion \n")
+            motion_id = (motion_id - 1) % len(motion_data_keys)
+            time_step = 0
+        else:
+            print("No motions available")
     elif chr(keycode) == "M":
         try:
             new_id = int(
@@ -128,6 +134,7 @@ def main(cfg: DictConfig) -> None:
 
     curr_time = 0
     resave = False
+    contact_mask = curr_motion.get("contact_mask", None)
 
     humanoid_xml = "./assets/unitree_g1/g1_mocap_29dof.xml"
     print(humanoid_xml)
@@ -163,12 +170,17 @@ def main(cfg: DictConfig) -> None:
             if motion_id != prev_motion_id:
                 curr_motion_key = motion_data_keys[motion_id]
                 curr_motion = motion_data[curr_motion_key]
-                print(f"Switched to motion: {curr_motion_key}")
+                print(
+                    f"\nSwitched to {motion_id}-th motion : {curr_motion_key}")
                 print(
                     "Motion length: ",
                     motion_data[curr_motion_key]["dof"].shape[0],
                     "frames",
                 )
+                print()
+
+                if hang:
+                    curr_motion["root_trans_offset"][:] = np.array([0, 0, 0.8])
 
                 if "fps" in curr_motion:
                     dt = 1.0 / curr_motion["fps"]
@@ -180,6 +192,7 @@ def main(cfg: DictConfig) -> None:
 
                 contact_mask = curr_motion.get("contact_mask", None)
                 time_step = 0
+                curr_time = 0
                 prev_motion_id = motion_id
             step_start = time.time()
             if time_step >= curr_motion["dof"].shape[0] * dt:
