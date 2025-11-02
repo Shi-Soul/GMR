@@ -28,6 +28,8 @@ coverage.xml
 *.swo
 *~
 
+outputs/
+
 # OS
 .DS_Store
 .DS_Store?
