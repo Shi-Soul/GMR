@@ -21,7 +21,7 @@ def process_pkl_file(input_path, output_path):
         trans = data['cam'][:, 0]
         gender = 'neutral'
         poses = data['pose'][:, 0]
-        mocap_framerate = 30
+        mocap_framerate = 20
 
         processed_data = {}
 

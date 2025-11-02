@@ -12,6 +12,7 @@ from natsort import natsorted
 from rich import print
 import torch
 import pickle
+import joblib
 
 from general_motion_retargeting import GeneralMotionRetargeting as GMR
 from general_motion_retargeting.utils.smpl import load_smplx_file, get_smplx_data_offline_fast
@@ -63,7 +64,7 @@ def gmr_to_pbhcform(root_pos,
         "root_trans_offset": root_trans_offset,
         "dof": dof,
         "root_rot": root_rot,
-        "fps": target_fps
+        "fps": target_fps,
     }
 
     return data_dump
@@ -192,8 +193,10 @@ def process_file(smplx_file_path,
                                            aligned_fps, tgt_fps)
 
     os.makedirs(os.path.dirname(tgt_file_path), exist_ok=True)
-    with open(tgt_file_path, "wb") as f:
-        pickle.dump(motion_data_pbhcform, f)
+    # with open(tgt_file_path, "wb") as f:
+    #     pickle.dump(motion_data_pbhcform, f)
+
+    joblib.dump({f"{tgt_file_path}": motion_data_pbhcform}, f"{tgt_file_path}")
 
     # Progress print based on tgt_folder
     done = 0
