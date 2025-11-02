@@ -166,6 +166,12 @@ if __name__ == "__main__":
                         type=int,
                         help="End Inter frame",
                         default=30)
+    parser.add_argument(
+        "--output",
+        type=str,
+        help=
+        "Output file path (without .pkl extension). If not specified, use default naming convention.",
+        default=None)
     args = parser.parse_args()
 
     # Load and clip data
@@ -211,12 +217,20 @@ if __name__ == "__main__":
         (contact_mask_start, contact_mask, contact_mask_end), axis=0)
 
     # Generate output filename
-    output_filename = (
-        str(
-            Path(args.origin_file_name).parent /
-            Path(args.origin_file_name).stem) +
-        f"_inter{contact_in_interp[0]}_S{args.start}-{args.start_inter_frame}_E{end_frame}-{args.end_inter_frame}"
-    )
+    if args.output is not None:
+        # Use user-specified output path, remove .pkl extension if present
+        output_filename = Path(args.output)
+        if output_filename.suffix == ".pkl":
+            output_filename = output_filename.with_suffix("")
+        output_filename = str(output_filename)
+    else:
+        # Use default naming convention
+        output_filename = (
+            str(
+                Path(args.origin_file_name).parent /
+                Path(args.origin_file_name).stem) +
+            f"_inter{contact_in_interp[0]}_S{args.start}-{args.start_inter_frame}_E{end_frame}-{args.end_inter_frame}"
+        )
 
     interpolate_motion(
         input_data=input_data,
