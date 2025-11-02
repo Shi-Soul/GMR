@@ -1,28 +1,15 @@
-import argparse
 import os
-import os.path as osp
-import pdb
 import sys
 import time
 
-# import pinocchio as pin
-
 sys.path.append(os.getcwd())
-
-# from smpl_sim.poselib.skeleton.skeleton3d import SkeletonTree
-import math
-from collections import defaultdict
-from copy import deepcopy
-from typing import List, Union
 
 import hydra
 import joblib
 import mujoco
 import mujoco.viewer
 import numpy as np
-import torch
-from omegaconf import DictConfig, OmegaConf
-from scipy.spatial.transform import Rotation as sRot
+from omegaconf import DictConfig
 
 
 def motion2q(motion):
@@ -35,10 +22,6 @@ def motion2q(motion):
         axis=1,
     )
     if not "root_lin_vel" in motion:
-        # nv = qpos.shape[1]-1
-        # current_qvel = np.zeros(nv)
-        # mujoco.mj_differentiatePos(model, current_qvel, rate.dt,
-        #                             prev_qpos, current_qpos)
         qvel = np.zeros((qpos.shape[0], qpos.shape[1] - 1))
     else:
         qvel = np.concatenate(
@@ -52,42 +35,15 @@ def motion2q(motion):
     return qpos, qvel
 
 
-def add_visual_capsule(scene, point1, point2, radius, rgba):
-    """Adds one capsule to an mjvScene."""
-    if scene.ngeom >= scene.maxgeom:
-        return
-    scene.ngeom += 1  # increment ngeom
-    # initialise a new capsule, add it to the scene using mjv_makeConnector
-    mujoco.mjv_initGeom(
-        scene.geoms[scene.ngeom - 1],
-        mujoco.mjtGeom.mjGEOM_CAPSULE,
-        np.zeros(3),
-        np.zeros(3),
-        np.zeros(9),
-        rgba.astype(np.float32),
-    )
-    mujoco.mjv_makeConnector(
-        scene.geoms[scene.ngeom - 1],
-        mujoco.mjtGeom.mjGEOM_CAPSULE,
-        radius,
-        point1[0],
-        point1[1],
-        point1[2],
-        point2[0],
-        point2[1],
-        point2[2],
-    )
-
-
 def key_call_back(keycode):
-    global curr_start, num_motions, motion_id, motion_acc, time_step, dt, speed, paused, rewind, motion_data_keys, contact_mask, curr_time, resave
+    global motion_id, time_step, dt, speed, paused, rewind, motion_data_keys, contact_mask, curr_time, resave
     if chr(keycode) == "R":
         print("Reset")
         time_step = 0
     elif chr(keycode) == " ":
         print("Paused")
         paused = not paused
-    elif keycode == 256 or chr(keycode) == "Q":
+    elif keycode == 256:  # ESC
         print("Esc")
         os._exit(0)
     elif chr(keycode) == "L":
@@ -99,18 +55,10 @@ def key_call_back(keycode):
     elif chr(keycode) == "J":
         print("Toggle Rewind: ", not rewind)
         rewind = not rewind
-    elif keycode == 262:  # (Right)
+    elif keycode == 262:  # Right arrow
         time_step += dt
-    elif keycode == 263:  # (Left)
+    elif keycode == 263:  # Left arrow
         time_step -= dt
-    elif chr(keycode) == "Q":
-        print("Modify left foot contact!!!")
-        contact_mask[curr_time][0] = 1.0 - contact_mask[curr_time][0]
-        resave = True
-    elif chr(keycode) == "E":
-        print("Modify right foot contact!!!")
-        contact_mask[curr_time][1] = 1.0 - contact_mask[curr_time][1]
-        resave = True
     elif chr(keycode) == "O":
         print("next motion")
         motion_id = (motion_id + 1) % len(motion_data_keys)
@@ -137,46 +85,23 @@ def key_call_back(keycode):
         print("not mapped", chr(keycode), keycode)
 
 
-def get_com(model, data):
-    # Get CoM of entire model
-    com = np.zeros(3)
-    total_mass = 0.0
-
-    for i in range(model.nbody):
-        mass = model.body_mass[i]
-        xpos = data.xipos[i]  # position of body CoM in world frame
-        com += mass * xpos
-        total_mass += mass
-
-    com /= total_mass
-    return com
-
-
 @hydra.main(version_base=None)
 def main(cfg: DictConfig) -> None:
-    global curr_start, num_motions, motion_id, motion_acc, time_step, dt, speed, paused, rewind, motion_data_keys, contact_mask, curr_time, resave
-    (
-        curr_start,
-        num_motions,
-        motion_id,
-        motion_acc,
-        time_step,
-        dt,
-        speed,
-        paused,
-        rewind,
-    ) = 0, 1, 0, set(), 0, 1 / 30, 1.0, False, False
-    # if 'dt' in cfg:
-    #     dt = cfg.dt
+    global motion_id, time_step, dt, speed, paused, rewind, motion_data_keys, contact_mask, curr_time, resave
+    motion_id = 0
+    time_step = 0
+    dt = 1 / 30
+    paused = False
+    rewind = False
+
     motion_file = cfg.motion_file
     motion_data = joblib.load(motion_file)
     motion_data_keys = list(motion_data.keys())
     curr_motion_key = motion_data_keys[motion_id]
     curr_motion = motion_data[curr_motion_key]
-    print(motion_file)
 
-    speed = 1.0 if "speed" not in cfg else cfg.speed
-    hang = False if "hang" not in cfg else cfg.hang
+    speed = cfg.get("speed", 1.0)
+    hang = cfg.get("hang", False)
     if hang:
         curr_motion["root_trans_offset"][:] = np.array([0, 0, 0.8])
     if "fps" in curr_motion:
@@ -234,7 +159,6 @@ def main(cfg: DictConfig) -> None:
         viewer.cam.elevation = -30  # 负值表示从上往下看viewer
 
         prev_motion_id = motion_id
-        # breakpoint()
         while viewer.is_running():
             if motion_id != prev_motion_id:
                 curr_motion_key = motion_data_keys[motion_id]
