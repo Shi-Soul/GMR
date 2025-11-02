@@ -39,12 +39,7 @@ def check_memory(threshold_gb=10):  # adjust based on your available memory
 HERE = pathlib.Path(__file__).parent
 
 
-def gmr_to_pbhcform(root_pos,
-                    root_rot,
-                    dof_pos,
-                    src_fps,
-                    target_fps,
-                    num_dof=29):
+def gmr_to_pbhcform(root_pos, root_rot, dof_pos, fps, num_dof=29):
     root_trans_offset = root_pos
     root_rot = root_rot
 
@@ -55,16 +50,11 @@ def gmr_to_pbhcform(root_pos,
     else:
         print("no such num_dof")
 
-    skip = int(src_fps // target_fps)
-    root_trans_offset = root_trans_offset[::skip]
-    dof = dof[::skip]
-    root_rot = root_rot[::skip]
-
     data_dump = {
         "root_trans_offset": root_trans_offset,
         "dof": dof,
         "root_rot": root_rot,
-        "fps": target_fps,
+        "fps": fps,
     }
 
     return data_dump
@@ -122,11 +112,16 @@ def process_file(smplx_file_path,
         print(f"Error processing {smplx_file_path}: {e}")
         return
 
+    print(
+        f"{tgt_fps=}, \t{aligned_fps=}, \t{len(smplx_frame_data_list)=}, \t{smplx_data['pose_body'].shape[0]=}, \t{smplx_data['mocap_frame_rate']=}"
+    )
+
     # retarget
     retargeter = GMR(
         src_human="smplx",
         tgt_robot=tgt_robot,
         actual_human_height=actual_human_height,
+        verbose=verbose,
     )
     qpos_list = []
     for smplx_frame_data in smplx_frame_data_list:
@@ -190,7 +185,7 @@ def process_file(smplx_file_path,
         "link_body_list": body_names,
     }
     motion_data_pbhcform = gmr_to_pbhcform(root_pos, root_rot, dof_pos,
-                                           aligned_fps, tgt_fps)
+                                           tgt_fps)
 
     os.makedirs(os.path.dirname(tgt_file_path), exist_ok=True)
     # with open(tgt_file_path, "wb") as f:
