@@ -113,7 +113,7 @@ def process_file(smplx_file_path,
         return
 
     print(
-        f"{tgt_fps=}, \t{aligned_fps=}, \t{len(smplx_frame_data_list)=}, \t{smplx_data['pose_body'].shape[0]=}, \t{smplx_data['mocap_frame_rate']=}"
+        f"{tgt_fps=}, \t{aligned_fps=}, \t output_frames={len(smplx_frame_data_list)=}, \t input_frames={smplx_data['pose_body'].shape[0]=}, \t input_fps={smplx_data['mocap_frame_rate']=}"
     )
 
     # retarget
