@@ -24,7 +24,7 @@ import psutil
 import tracemalloc
 
 
-def check_memory(threshold_gb=10):  # adjust based on your available memory
+def check_memory(threshold_gb=6):  # adjust based on your available memory
     mem = psutil.virtual_memory()
     used_memory_gb = (mem.total - mem.available) / (1024**3)
     available_memory_gb = mem.available / (1024**3)
@@ -275,7 +275,7 @@ def main():
 
     # remove hard and infeasible motions
     exclude_file_content = [
-        "BMLrub", "EKUT", "crawl", "_lie", "upstairs", "downstairs"
+        # "BMLrub", "EKUT", "crawl", "_lie", "upstairs", "downstairs"
     ]
 
     new_args_list = []

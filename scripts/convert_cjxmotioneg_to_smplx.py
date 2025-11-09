@@ -18,9 +18,11 @@ def process_pkl_file(input_path, output_path):
         data = joblib.load(input_path)
 
         betas = data['beta'][0]
-        trans = data['cam'][:, 0]
+        trans = data['cam'][:]
+        # trans = data['cam'][:, 0]
         gender = 'neutral'
-        poses = data['pose'][:, 0]
+        poses = data['pose'][:]
+        # poses = data['pose'][:, 0]
         mocap_framerate = 20
 
         processed_data = {}
